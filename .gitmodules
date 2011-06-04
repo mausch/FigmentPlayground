@@ -1,0 +1,6 @@
+[submodule "Figment"]
+	path = Figment
+	url = git://github.com/mausch/Figment.git
+[submodule "FsFormlets"]
+	path = FsFormlets
+	url = git://github.com/mausch/FsFormlets.git

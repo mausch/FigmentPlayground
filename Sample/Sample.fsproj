@@ -23,7 +23,7 @@
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Sample.XML</DocumentationFile>
     <StartAction>Program</StartAction>
-    <StartProgram>C:\prg\Figment\Sample\WebStarter.exe</StartProgram>
+    <StartProgram>c:\prg\FigmentPlaygound\Sample\WebStarter.exe</StartProgram>
     <StartWorkingDirectory>
     </StartWorkingDirectory>
     <StartArguments>
@@ -61,14 +61,14 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="WingBeats">
-      <HintPath>..\lib\WingBeats.dll</HintPath>
+      <HintPath>..\Figment\lib\WingBeats.dll</HintPath>
     </Reference>
     <Reference Include="WingBeats.Xhtml">
-      <HintPath>..\lib\WingBeats.Xhtml.dll</HintPath>
+      <HintPath>..\Figment\lib\WingBeats.Xhtml.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Figment\Figment.fsproj">
+    <ProjectReference Include="..\Figment\Figment\Figment.fsproj">
       <Name>Figment</Name>
       <Project>{a080b979-6e39-44c4-ac1a-4850e32c355a}</Project>
       <Private>True</Private>
