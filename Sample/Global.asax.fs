@@ -280,9 +280,21 @@ type MvcApplication() =
                             "application/xml", Result.xml
                             "application/json", Result.json
                           ]
-            get "conneg1" (conneg writers (fun ctx -> 5))
-            let conneg2writers = ("text/html",wbpage >> Result.wbview)::writers
-            get "conneg2" (conneg conneg2writers (fun ctx -> "hello"))
+            get "conneg1" (conneg writers (fun _ -> 5))
+
+            let wbview = wbpage >> Result.wbview
+
+            let conneg2writers = ("text/html", wbview)::writers
+            get "conneg2" (conneg conneg2writers (fun _ -> "hello"))
+
+            // no true negotiation here, client's preferences are ignored
+            let ifConneg3Get = ifMethodIsGet &&. ifPathIs "conneg3"
+            let conneg3 (ctx: ControllerContext) = "world"
+            action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (conneg3 >> Result.xml)
+            action (ifConneg3Get &&. ifAccepts "application/json") (conneg3 >> Result.json)
+            action (ifConneg3Get &&. ifAccepts "text/html") (conneg3 >> wbview)
+            action ifConneg3Get (fun _ -> Result.notAcceptable)
+            
 
         action any (status 404 => content "<h1>Not found!</h1>")
         
