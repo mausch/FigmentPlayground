@@ -209,7 +209,6 @@ module ConnegIntegration =
     let conneg (writers: (string * ('a -> ActionResult)) list) (action: ControllerContext -> 'a) : Helpers.FAction = 
         let servedMedia = List.map fst writers
         fun ctx ->
-            let result = action ctx
             let negMedia = FsConneg.filterSortMedia servedMedia (accepted ctx)
             match negMedia with
             | a::_ -> 
