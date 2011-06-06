@@ -178,9 +178,12 @@ module FormletsExtensions =
 module ConnegIntegration =
     open FsConneg
     open Figment.Extensions
+    open Figment.RoutingConstraints
+
+    let internal haccept = "Accept"
 
     let internal accepted (ctx: ControllerContext) =
-        ctx.Request.Headers.["Accept"]
+        ctx.Request.Headers.[haccept]
 
     let filterMediaTypes media (ctx: ControllerContext) =
         FsConneg.filterMediaTypes media (accepted ctx)
@@ -192,20 +195,24 @@ module ConnegIntegration =
         open Figment.Result
         let notAcceptable = status 406 >>. (content "Not Acceptable")
 
-    let conneg (action: Helpers.FAction) : Helpers.FAction = 
+    let ifAccepts media : RouteConstraint = 
+        fun (ctx, route) ->
+            ctx.Request.Headers.[haccept] 
+            |> FsConneg.parseAccept 
+            |> List.exists ((=) media)
+
+    let ifAcceptsAny media : RouteConstraint =
+        fun (ctx, route) ->
+            let acceptable = FsConneg.filterSortMedia media ctx.Request.Headers.[haccept]
+            acceptable.Length > 0
+
+    let conneg (writers: (string * ('a -> ActionResult)) list) (action: ControllerContext -> 'a) : Helpers.FAction = 
+        let servedMedia = List.map fst writers
         fun ctx ->
             let result = action ctx
-            match result with
-            | :? ViewResult as v -> 
-                let servedMedia = ["text/html"; "application/json"; "application/xml"; "text/xml"]
-                match FsConneg.filterSortMedia servedMedia (accepted ctx) with
-                | "text/html"::_ -> upcast v
-                | "application/json"::_ -> Result.json v.ViewData.Model
-                | "application/xml"::_ -> Result.xml v.ViewData.Model
-                | "text/xml"::_ -> Result.xml v.ViewData.Model
-                | _ -> Result.notAcceptable
-            | :? JsonResult as r ->
-                if Seq.exists ((=) "application/json") (accepted ctx |> parseAccept)
-                    then upcast r
-                    else Result.notAcceptable
-            | _ -> result
+            let negMedia = FsConneg.filterSortMedia servedMedia (accepted ctx)
+            match negMedia with
+            | a::_ -> 
+                let writer = List.find (fun (m,w) -> m = a) writers |> snd
+                action ctx |> writer
+            | _ -> Result.notAcceptable

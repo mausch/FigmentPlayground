@@ -274,9 +274,15 @@ type MvcApplication() =
         formletBind()
 
         // content negotiation
-        get "conneg1" (conneg (fun ctx ->
-            Result.view "" 5
-        ))
+        let () =
+            let writers = [
+                            "text/xml", Result.xml
+                            "application/xml", Result.xml
+                            "application/json", Result.json
+                          ]
+            get "conneg1" (conneg writers (fun ctx -> 5))
+            let conneg2writers = ("text/html",wbpage >> Result.wbview)::writers
+            get "conneg2" (conneg conneg2writers (fun ctx -> "hello"))
 
         action any (status 404 => content "<h1>Not found!</h1>")
         
