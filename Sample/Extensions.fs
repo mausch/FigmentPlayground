@@ -172,3 +172,40 @@ module FormletsExtensions =
                     let rf = rftmg.MakeGenericMethod([|t|])                
                     let r = rf.Invoke(null, [|formlet|])
                     unbox r
+
+
+[<AutoOpen>]
+module ConnegIntegration =
+    open FsConneg
+    open Figment.Extensions
+
+    let internal accepted (ctx: ControllerContext) =
+        ctx.Request.Headers.["Accept"]
+
+    let filterMediaTypes media (ctx: ControllerContext) =
+        FsConneg.filterMediaTypes media (accepted ctx)
+
+    let filterSortMedia media (ctx: ControllerContext) =
+        FsConneg.filterSortMedia media (accepted ctx)
+
+    module Result =
+        open Figment.Result
+        let notAcceptable = status 406 >>. (content "Not Acceptable")
+
+    let conneg (action: Helpers.FAction) : Helpers.FAction = 
+        fun ctx ->
+            let result = action ctx
+            match result with
+            | :? ViewResult as v -> 
+                let servedMedia = ["text/html"; "application/json"; "application/xml"; "text/xml"]
+                match FsConneg.filterSortMedia servedMedia (accepted ctx) with
+                | "text/html"::_ -> upcast v
+                | "application/json"::_ -> Result.json v.ViewData.Model
+                | "application/xml"::_ -> Result.xml v.ViewData.Model
+                | "text/xml"::_ -> Result.xml v.ViewData.Model
+                | _ -> Result.notAcceptable
+            | :? JsonResult as r ->
+                if Seq.exists ((=) "application/json") (accepted ctx |> parseAccept)
+                    then upcast r
+                    else Result.notAcceptable
+            | _ -> result

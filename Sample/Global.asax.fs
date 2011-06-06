@@ -273,6 +273,11 @@ type MvcApplication() =
 
         formletBind()
 
+        // content negotiation
+        get "conneg1" (conneg (fun ctx ->
+            Result.view "" 5
+        ))
+
         action any (status 404 => content "<h1>Not found!</h1>")
         
         ()
