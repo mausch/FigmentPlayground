@@ -4,3 +4,6 @@
 [submodule "FsFormlets"]
 	path = FsFormlets
 	url = git://github.com/mausch/FsFormlets.git
+[submodule "FsConneg"]
+	path = FsConneg
+	url = git://github.com/mausch/FsConneg.git
