@@ -191,6 +191,9 @@ module ConnegIntegration =
     let filterSortMedia media (ctx: ControllerContext) =
         FsConneg.filterSortMedia media (accepted ctx)
 
+    let bestMedia media (ctx: ControllerContext) =
+        FsConneg.bestMedia media (accepted ctx)
+
     module Result =
         open Figment.Result
         let notAcceptable = status 406 >>. (content "Not Acceptable")
@@ -209,9 +212,9 @@ module ConnegIntegration =
     let conneg (writers: (string * ('a -> ActionResult)) list) (action: ControllerContext -> 'a) : Helpers.FAction = 
         let servedMedia = List.map fst writers
         fun ctx ->
-            let negMedia = FsConneg.filterSortMedia servedMedia (accepted ctx)
+            let negMedia = FsConneg.bestMedia servedMedia (accepted ctx)
             match negMedia with
-            | a::_ -> 
+            | Some a -> 
                 let writer = List.find (fun (m,w) -> m = a) writers |> snd
                 action ctx |> writer
             | _ -> Result.notAcceptable
