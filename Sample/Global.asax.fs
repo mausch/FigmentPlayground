@@ -295,6 +295,16 @@ type MvcApplication() =
             action (ifConneg3Get &&. ifAccepts "text/html") (conneg3 >> wbview)
             action ifConneg3Get (fun _ -> Result.notAcceptable)
             
+            // extension-driven media-type selection
+            let extensions = [
+                                "xml", Result.xml
+                                "json", Result.json
+                                "html", wbview
+                             ]
+            let conneg4 (ctx: ControllerContext) = "bye world"
+            extensions 
+            |> List.iter (fun (ext,writer) -> action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
+            ()
 
         action any (status 404 => content "<h1>Not found!</h1>")
         
