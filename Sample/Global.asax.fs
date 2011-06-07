@@ -292,6 +292,10 @@ type MvcApplication() =
             let conneg3 (ctx: ControllerContext) = "world"
             action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (conneg3 >> Result.xml)
             action (ifConneg3Get &&. ifAccepts "application/json") (conneg3 >> Result.json)
+            let getCallback (ctx: HttpContextBase, _) = ctx.Request.QueryString.["callback"]
+            let jsonp = Result.jsonp (fun ctx -> getCallback(ctx.HttpContext, ()))
+            let ifCallbackDefined = getCallback >> String.IsNullOrEmpty >> not
+            action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (conneg3 >> jsonp)
             action (ifConneg3Get &&. ifAccepts "text/html") (conneg3 >> wbview)
             action ifConneg3Get (fun _ -> Result.notAcceptable)
             
