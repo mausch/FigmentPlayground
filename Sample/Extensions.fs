@@ -188,11 +188,11 @@ module ConnegIntegration =
     let filterMediaTypes media (ctx: ControllerContext) =
         FsConneg.filterMediaTypes media (accepted ctx)
 
-    let filterSortMedia media (ctx: ControllerContext) =
-        FsConneg.filterSortMedia media (accepted ctx)
+    let negotiateMediaType media (ctx: ControllerContext) =
+        FsConneg.negotiateMediaType media (accepted ctx)
 
-    let bestMedia media (ctx: ControllerContext) =
-        FsConneg.bestMedia media (accepted ctx)
+    let bestMediaType media (ctx: ControllerContext) =
+        FsConneg.bestMediaType media (accepted ctx)
 
     module Result =
         open Figment.Result
@@ -201,18 +201,18 @@ module ConnegIntegration =
     let ifAccepts media : RouteConstraint = 
         fun (ctx, route) ->
             ctx.Request.Headers.[haccept] 
-            |> FsConneg.parseAccept 
+            |> FsConneg.parseFilterSortAccept 
             |> List.exists ((=) media)
 
     let ifAcceptsAny media : RouteConstraint =
         fun (ctx, route) ->
-            let acceptable = FsConneg.filterSortMedia media ctx.Request.Headers.[haccept]
+            let acceptable = FsConneg.negotiateMediaType media ctx.Request.Headers.[haccept]
             acceptable.Length > 0
 
     let conneg (writers: (string * ('a -> ActionResult)) list) (action: ControllerContext -> 'a) : Helpers.FAction = 
         let servedMedia = List.map fst writers
         fun ctx ->
-            let negMedia = FsConneg.bestMedia servedMedia (accepted ctx)
+            let negMedia = FsConneg.bestMediaType servedMedia (accepted ctx)
             match negMedia with
             | Some a -> 
                 let writer = List.find (fun (m,w) -> m = a) writers |> snd
