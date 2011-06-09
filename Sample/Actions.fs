@@ -17,6 +17,7 @@ open Figment
 open Figment.Routing
 open Figment.Filters
 open Figment.Binding
+open Figment.Result
 open Figment.Actions
 open Figment.Extensions
 open WingBeats
@@ -72,6 +73,14 @@ let webactions () =
         sprintf "Hello %s %s, %d years old" firstname lastname age
         |> Result.content
     getf "route/{firstname:%s}/{lastname:%s}/{age:%d}" nameAndAge
+
+    // strongly-typed route+binding with access to HttpContext
+    getf "route/{name:%s}" 
+        (fun name -> 
+            result (fun ctx ->
+                ctx.Response.Writefn "Hello %s" name
+                ctx.Response.Writefn "Your IP is: %s" ctx.IP)
+            >>. Result.contentType "text/plain") // The '>>.' operator concatenates ActionResults, running them sequentially
 
     // wing beats integration
 
