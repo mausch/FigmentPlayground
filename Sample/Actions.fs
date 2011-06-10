@@ -316,7 +316,7 @@ let webactions () =
         |> List.iter (fun (ext,writer) -> action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
     ()
 
-open Figment.Actions
-
 let notfound () =
+    // The '=>' operator concatenates handlers, running them sequentially
     action any (status 404 => content "<h1>Not found!</h1>")
+

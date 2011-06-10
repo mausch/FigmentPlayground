@@ -44,6 +44,7 @@
     <Content Include="web.config" />
     <Compile Include="Extensions.fs" />
     <Compile Include="Actions.fs" />
+    <Compile Include="PreApp.fs" />
     <Content Include="Global.asax" />
     <Compile Include="Global.asax.fs" />
   </ItemGroup>
