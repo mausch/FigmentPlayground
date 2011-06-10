@@ -179,6 +179,7 @@ module ConnegIntegration =
     open FsConneg
     open Figment.Extensions
     open Figment.RoutingConstraints
+    open Figment.Result
 
     let internal haccept = "Accept"
 
@@ -195,7 +196,6 @@ module ConnegIntegration =
         FsConneg.bestMediaType media (accepted ctx)
 
     module Result =
-        open Figment.Result
         let notAcceptable = status 406 >>. (content "Not Acceptable")
 
     let ifAccepts media : RouteConstraint = 
@@ -215,6 +215,6 @@ module ConnegIntegration =
             let negMedia = FsConneg.bestMediaType servedMedia (accepted ctx)
             match negMedia with
             | Some a -> 
-                let writer = List.find (fun (m,w) -> m = a) writers |> snd
-                action ctx |> writer
+                let writer = List.find (fst >> (=)a) writers |> snd
+                (action ctx |> writer) >>. vary "Accept"
             | _ -> Result.notAcceptable
