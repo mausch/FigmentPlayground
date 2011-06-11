@@ -7,7 +7,8 @@ open System.Web.UI
 open System.Web.Mvc
 
 type PersonalInfo = {
-    Name: string
+    FirstName: string
+    LastName: string
     Email: string
     Password: string
     DateOfBirth: DateTime
@@ -41,7 +42,7 @@ let webactions () =
 
     // applying cache as a filter, showing a regular ASP.NET MVC view
     let cache300 = cache (OutputCacheParameters(Duration = 300, Location = OutputCacheLocation.Any))
-    get "showform" (cache300 <| view "sampleform" { Name = "Cacho Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime.MinValue })
+    get "showform" (cache300 <| view "sampleform" { FirstName = "Cacho"; LastName = "Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime(1942,6,11) })
 
     // handle post to "action6"
 
@@ -184,7 +185,7 @@ let webactions () =
 
         fun ip ->
             yields (fun n e p d -> 
-                        { Name = n; Email = e; Password = p; DateOfBirth = d })
+                        { FirstName = n; LastName = ""; Email = e; Password = p; DateOfBirth = d })
             <*> (f.Text(required = true) |> f.WithLabel "Name: ")
             <+ e.Br()
             <*> (f.Email(required = true) |> f.WithLabel "Email: ")
@@ -222,7 +223,7 @@ let webactions () =
     formAction "register" {
         Formlet = fun ctx -> registrationFormlet ctx.IP
         Page = fun _ -> registrationPage
-        Success = fun _ v -> Result.redirectf "thankyou?n=%s" v.Name
+        Success = fun _ v -> Result.redirectf "thankyou?n=%s" v.FirstName
     }
 
     // http://www.paulgraham.com/arcchallenge.html
