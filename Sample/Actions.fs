@@ -15,6 +15,7 @@ type PersonalInfo = {
 }
 
 open Figment
+open Figment.Helpers
 open Figment.Routing
 open Figment.Filters
 open Figment.Binding
@@ -37,42 +38,39 @@ let webactions () =
     // hello world
     get "hi" (content "<h1>Hello World!</h1>")
 
-    // redirect root to "hi"
+    // redirect root to "/hi"
     get "" (redirect "hi")
 
     // applying cache as a filter, showing a regular ASP.NET MVC view
     let cache300 = cache (OutputCacheParameters(Duration = 300, Location = OutputCacheLocation.Any))
     get "showform" (cache300 <| view "sampleform" { FirstName = "Cacho"; LastName = "Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime(1942,6,11) })
+   
+    // handle post to "/showdata"
+    // first, a regular function
+    let greet name = sprintf "Hello %s" name
+    // binding to request
+    let greet' (ctx: ControllerContext) = 
+        let boundGreet = greet >> Result.contentf "<h1>%s</h1>"
+        boundGreet ctx.["somefield"]
+    post "showdata" greet'
 
-    // handle post to "action6"
+    // handle get to "/showdata"
+    // first, a regular function
+    let greet firstName lastName age = 
+        sprintf "Hello %s %s, you're %d years old" firstName lastName age
+    // binding to request
+    let greet' (ctx: ControllerContext) =
+        greet ctx.["firstname"] ctx.["lastname"] (int ctx.["age"])
+        |> sprintf "<p>%s</p>" |> Result.content
+    get "showdata" greet'
 
-    let () =
-        // first, a regular function
-        let greet name = sprintf "Hello %s" name
-        // binding to request
-        let greet' (ctx: ControllerContext) = 
-            let boundGreet = greet >> sprintf "<h1>%s</h1>" >> Result.content
-            boundGreet ctx.["somefield"]
-        post "action6" greet'
-
-        // handle get to "action6"
-        // first, a regular function
-        let greet firstName lastName age = 
-            sprintf "Hello %s %s, you're %d years old" firstName lastName age
-        // binding to request
-        let greet' (ctx: ControllerContext) =
-            greet ctx.["firstname"] ctx.["lastname"] (int ctx.["age"])
-            |> sprintf "<p>%s</p>" |> Result.content
-        get "action6" greet'
-
-        let greet' (p: NameValueCollection) = 
-            greet p.["firstname"] p.["lastname"] (int p.["age"])
-        get "greetme2" (bindQuerystring greet' >> Result.view "someview")
+    let greet' (p: NameValueCollection) = 
+        greet p.["firstname"] p.["lastname"] (int p.["age"])
+    get "greetme2" (bindQuerystring greet' >> Result.view "someview")
 
     // strongly-typed route+binding
     let nameAndAge firstname lastname age = 
-        sprintf "Hello %s %s, %d years old" firstname lastname age
-        |> Result.content
+        Result.contentf "Hello %s %s, %d years old" firstname lastname age
     getf "route/{firstname:%s}/{lastname:%s}/{age:%d}" nameAndAge
 
     // strongly-typed route+binding with access to HttpContext
@@ -112,8 +110,7 @@ let webactions () =
 
     let google (ctx: ControllerContext) = async {
         Debug.WriteLine "Start async action"
-        let query = ctx.Url.Segments.[2]
-        let query = HttpUtility.UrlEncode query
+        let query = ctx.Url.Segments.[2] |> urlencode
         use web = new WebClient()
         let! content = web.AsyncDownloadString(Uri("http://www.google.com/search?q=" + query))
         Debug.WriteLine "got google response"
