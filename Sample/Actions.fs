@@ -279,37 +279,51 @@ let webactions () =
 
     // content negotiation
     let () =
+        // first, an action returning any value (not an ActionResult). 
+        // This is user-level code
+        let conneg1 _ = 5
+
+        // now we define the available media type writers in a table
         let writers = [
                         "text/xml", Result.xml
                         "application/xml", Result.xml
                         "application/json", Result.json
                         ]
-        get "conneg1" (conneg writers (fun _ -> 5))
+
+        // finally we register the action with negotiation
+        get "conneg1" (negotiateActionMediaType writers conneg1)
 
         let wbview = wbpage >> Result.wbview
 
         let conneg2writers = ("text/html", wbview)::writers
-        get "conneg2" (conneg conneg2writers (fun _ -> "hello"))
+        get "conneg2" (negotiateActionMediaType conneg2writers (fun _ -> "hello"))
 
-        // no true negotiation here, client's preferences are ignored
-        let ifConneg3Get = ifMethodIsGet &&. ifPathIs "conneg3"
+        // Another example with no true negotiation, client's preferences are ignored
+        // a simple action (user-level code)
         let conneg3 (ctx: ControllerContext) = "world"
+        // partial routing function
+        let ifConneg3Get = ifMethodIsGet &&. ifPathIs "conneg3"
+        // if client accepts xml, respond with xml
         action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (conneg3 >> Result.xml)
+        // if client accepts json, respond with json
         action (ifConneg3Get &&. ifAccepts "application/json") (conneg3 >> Result.json)
+        // jsonp
         let getCallback (ctx: HttpContextBase) = ctx.Request.QueryString.["callback"]
         let jsonp = Result.jsonp (fun ctx -> getCallback ctx.HttpContext)
         let ifCallbackDefined (ctx,_) = getCallback ctx |> String.IsNullOrEmpty |> not
         action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (conneg3 >> jsonp)
+        // finally, html
         action (ifConneg3Get &&. ifAccepts "text/html") (conneg3 >> wbview)
+        // if client didn't accept any of the previously defined media types, respond with 406 (not acceptable)
         action ifConneg3Get (fun _ -> Result.notAcceptable)
             
         // extension-driven media-type selection
+        let conneg4 (ctx: ControllerContext) = "bye world"
         let extensions = [
                             "xml", Result.xml
                             "json", Result.json
                             "html", wbview
                             ]
-        let conneg4 (ctx: ControllerContext) = "bye world"
         extensions 
         |> List.iter (fun (ext,writer) -> action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
     ()

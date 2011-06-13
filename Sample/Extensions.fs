@@ -209,7 +209,12 @@ module ConnegIntegration =
             let acceptable = FsConneg.negotiateMediaType media ctx.Request.Headers.[haccept]
             acceptable.Length > 0
 
-    let conneg (writers: (string * ('a -> ActionResult)) list) (action: ControllerContext -> 'a) : Helpers.FAction = 
+    /// <summary>
+    /// Negotiates response media type
+    /// </summary>
+    /// <param name="writers">Table of available media type writers</param>
+    /// <param name="action"></param>
+    let negotiateActionMediaType (writers: (string * ('a -> ActionResult)) list) (action: ControllerContext -> 'a) : Helpers.FAction = 
         let servedMedia = List.map fst writers
         fun ctx ->
             let negMedia = FsConneg.bestMediaType servedMedia (accepted ctx)
