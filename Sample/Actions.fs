@@ -314,7 +314,32 @@ let webactions () =
         |> List.iter (fun (ext,writer) -> action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
     ()
 
+open System.Web.Routing
+
+// registers low-priority actions that should match last
 let notfound () =
     // The '=>' operator concatenates handlers, running them sequentially
-    action any (status 404 => content "<h1>Not found!</h1>")
+    let notFound = status 404 => content "<h1>Not found!</h1>"
+
+    // generic HEAD support
+    action ifMethodIsHead 
+        (fun cctx -> 
+            let newContext = 
+                { new DelegatingHttpContextBase(cctx.HttpContext) with
+                    override x.Request =
+                        upcast { new DelegatingHttpRequestBase(cctx.HttpContext.Request) with
+                                    override x.HttpMethod = "GET" } }
+            let route = RouteTable.Routes.GetRouteData(newContext)
+            cctx.HttpContext <- newContext
+            if route = null
+                then notFound cctx
+                else
+                    cctx.Response.Clear()
+                    let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
+                    handler.ProcessRequest cctx.HttpContext.UnderlyingHttpContext
+                    cctx.Response.ClearContent()
+                    Result.empty)
+
+    // no action found, return 404
+    action any notFound
 
