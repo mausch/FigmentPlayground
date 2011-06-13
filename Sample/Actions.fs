@@ -329,16 +329,11 @@ let notfound () =
                     override x.Request =
                         upcast { new DelegatingHttpRequestBase(cctx.HttpContext.Request) with
                                     override x.HttpMethod = "GET" } }
-            let route = RouteTable.Routes.GetRouteData(newContext)
-            cctx.HttpContext <- newContext
-            if route = null
-                then notFound cctx
-                else
-                    cctx.Response.Clear()
-                    let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
-                    handler.ProcessRequest cctx.HttpContext.UnderlyingHttpContext
-                    cctx.Response.ClearContent()
-                    Result.empty)
+            match RouteTable.Routes.GetRouteData newContext with
+            | null -> notFound cctx
+            | route -> 
+                let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
+                result (fun ctx -> handler.ProcessRequest ctx.HttpContext.UnderlyingHttpContext))
 
     // no action found, return 404
     action any notFound
