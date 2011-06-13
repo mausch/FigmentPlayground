@@ -196,7 +196,7 @@ module ConnegIntegration =
         FsConneg.bestMediaType media (accepted ctx)
 
     module Result =
-        let notAcceptable = status 406 >>. (content "Not Acceptable")
+        let notAcceptable = status 406 >>. content "Not Acceptable"
 
     let ifAccepts media : RouteConstraint = 
         fun (ctx, route) ->
@@ -214,7 +214,7 @@ module ConnegIntegration =
     /// </summary>
     /// <param name="writers">Table of available media type writers</param>
     /// <param name="action"></param>
-    let negotiateActionMediaType (writers: (string * ('a -> ActionResult)) list) (action: ControllerContext -> 'a) : Helpers.FAction = 
+    let negotiateActionMediaType writers action =
         let servedMedia = List.map fst writers
         fun ctx ->
             let negMedia = FsConneg.bestMediaType servedMedia (accepted ctx)
