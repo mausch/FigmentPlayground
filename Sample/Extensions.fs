@@ -195,6 +195,9 @@ module ConnegIntegration =
     let bestMediaType media (ctx: ControllerContext) =
         FsConneg.bestMediaType media (accepted ctx)
 
+    let bestLanguage lang (ctx: ControllerContext) =
+        FsConneg.bestLanguage lang (accepted ctx)
+
     module Result =
         let notAcceptable = status 406 >>. content "Not Acceptable"
 
@@ -205,8 +208,9 @@ module ConnegIntegration =
     let ifAccepts media : RouteConstraint = 
         fun (ctx, route) ->
             ctx.Request.Headers.[haccept] 
-            |> FsConneg.parseFilterSortAccept 
-            |> List.exists ((=) media)
+            |> FsConneg.parseFilterSortAccept
+            |> Seq.map fst
+            |> Seq.exists ((=) media)
 
     /// <summary>
     /// Routing function that matches if client accepts any of the specified media types
@@ -223,11 +227,11 @@ module ConnegIntegration =
     /// <param name="writers">Table of available media type writers</param>
     /// <param name="action"></param>
     let negotiateActionMediaType writers action =
-        let servedMedia = List.map fst writers
+        let servedMedia = List.collect fst writers
+        let bestOf = FsConneg.bestMediaType servedMedia >> Option.map fst
         fun ctx ->
-            let negMedia = FsConneg.bestMediaType servedMedia (accepted ctx)
-            match negMedia with
+            match bestOf (accepted ctx) with
             | Some a -> 
-                let writer = List.find (fst >> (=)a) writers |> snd
+                let writer = List.find (fst >> List.exists ((=)a)) writers |> snd
                 (action ctx |> writer) >>. vary "Accept"
             | _ -> Result.notAcceptable

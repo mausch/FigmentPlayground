@@ -285,10 +285,9 @@ let webactions () =
 
         // now we define the available media type writers in a table
         let writers = [
-                        "text/xml", Result.xml
-                        "application/xml", Result.xml
-                        "application/json", Result.json
-                        ]
+                        ["text/xml"; "application/xml"], Result.xml
+                        ["application/json"], Result.json
+                      ]
 
         // finally we register the action with negotiation
         get "conneg1" (negotiateActionMediaType writers conneg1)
@@ -298,7 +297,7 @@ let webactions () =
         // a Wing Beats (html) ActionResult generator
         let wbview = wbpage >> Result.wbview
         // we add html to the list of available media types
-        let conneg2writers = ("text/html", wbview)::writers
+        let conneg2writers = (["text/html"], wbview)::writers
         // finally we register the action with negotiation
         get "conneg2" (negotiateActionMediaType conneg2writers conneg2)
 
@@ -327,9 +326,24 @@ let webactions () =
                             "xml", Result.xml
                             "json", Result.json
                             "html", wbview
-                            ]
+                         ]
         extensions 
         |> List.iter (fun (ext,writer) -> action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
+
+        // extension-driven + negotiated media-type
+        let conneg5 (ctx: ControllerContext) = "something something"
+        let basePath = "conneg5"
+        let writers = [
+                        "xml", ["application/xml"; "text/xml"], Result.xml
+                        "json", ["application/json"], Result.json
+                        "html", ["text/html"], wbview
+                      ]
+        writers |> List.iter (fun (ext,_,writer) -> 
+                                action (ifPathIsf "%s.%s" basePath ext) (conneg5 >> writer))
+        let mediaTypes = List.map (fun (_,a,b) -> a,b) writers
+        action (ifPathIs basePath) (negotiateActionMediaType mediaTypes conneg5)
+        ()
+
     ()
 
 open System.Web.Routing
