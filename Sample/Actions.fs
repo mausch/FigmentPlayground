@@ -293,10 +293,14 @@ let webactions () =
         // finally we register the action with negotiation
         get "conneg1" (negotiateActionMediaType writers conneg1)
 
+        // another example including a text/html media type:
+        let conneg2 _ = "hello"
+        // a Wing Beats (html) ActionResult generator
         let wbview = wbpage >> Result.wbview
-
+        // we add html to the list of available media types
         let conneg2writers = ("text/html", wbview)::writers
-        get "conneg2" (negotiateActionMediaType conneg2writers (fun _ -> "hello"))
+        // finally we register the action with negotiation
+        get "conneg2" (negotiateActionMediaType conneg2writers conneg2)
 
         // Another example with no true negotiation, client's preferences are ignored
         // a simple action (user-level code)

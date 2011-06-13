@@ -198,12 +198,20 @@ module ConnegIntegration =
     module Result =
         let notAcceptable = status 406 >>. content "Not Acceptable"
 
+    /// <summary>
+    /// Routing function that matches if client accepts the specified media type
+    /// </summary>
+    /// <param name="media"></param>
     let ifAccepts media : RouteConstraint = 
         fun (ctx, route) ->
             ctx.Request.Headers.[haccept] 
             |> FsConneg.parseFilterSortAccept 
             |> List.exists ((=) media)
 
+    /// <summary>
+    /// Routing function that matches if client accepts any of the specified media types
+    /// </summary>
+    /// <param name="media"></param>
     let ifAcceptsAny media : RouteConstraint =
         fun (ctx, route) ->
             let acceptable = FsConneg.negotiateMediaType media ctx.Request.Headers.[haccept]
