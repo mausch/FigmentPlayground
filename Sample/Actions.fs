@@ -354,6 +354,8 @@ open System.Web.Routing
 
 // registers low-priority actions that should match last
 let genericActions () =
+    let allMethods = ["GET"; "POST"; "HEAD"; "PUT"; "DELETE"]
+
     let withMethod httpMethod (ctx: HttpContextBase) : HttpContextBase =
         upcast { new DelegatingHttpContextBase(ctx) with
                     override x.Request =
@@ -370,13 +372,26 @@ let genericActions () =
                 let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
                 result (fun ctx -> handler.ProcessRequest ctx.HttpContext.UnderlyingHttpContext))
 
+    let routes = RouteTable.Routes.Clone() // shallow copy of routes registered so far
+
+    let supportsMethod (cctx: ControllerContext) httpMethod = 
+        let route = cctx.HttpContext |> withMethod httpMethod |> routes.GetRouteData
+        route <> null
+
     // generic OPTIONS support
     action ifMethodIsOptions
         (fun cctx ->
-            let supportsMethod httpMethod = 
-                let route = cctx.HttpContext |> withMethod httpMethod |> RouteTable.Routes.GetRouteData
-                route <> null
-            ["GET"; "POST"; "HEAD"; "PUT"; "DELETE"]
-            |> Seq.filter supportsMethod
+            allMethods
+            |> Seq.filter (supportsMethod cctx)
             |> Result.allow)
-            
+
+    allMethods
+    |> List.iter (fun metod ->
+                    let otherMethods = allMethods |> Seq.filter ((<>) metod)
+                    action (ifMethodIs metod) 
+                        (fun cctx ->
+                            let supportedMethods = otherMethods |> Seq.filter (supportsMethod cctx) |> Seq.toList
+                            match supportedMethods with
+                            | [] -> Result.status 404
+                            | x -> Result.methodNotAllowed x))
+                            
