@@ -303,7 +303,7 @@ let webactions () =
 
         // Another example with no true negotiation, client's preferences are ignored
         // a simple action (user-level code)
-        let conneg3 (ctx: ControllerContext) = "world"
+        let conneg3 _ = "world"
         // partial routing function
         let ifConneg3Get = ifMethodIsGet &&. ifPathIs "conneg3"
         // if client accepts xml, respond with xml
@@ -321,17 +321,17 @@ let webactions () =
         action ifConneg3Get (fun _ -> Result.notAcceptable)
             
         // extension-driven media-type selection
-        let conneg4 (ctx: ControllerContext) = "bye world"
+        let conneg4 _ = "bye world"
         let extensions = [
                             "xml", Result.xml
                             "json", Result.json
                             "html", wbview
                          ]
-        extensions 
-        |> List.iter (fun (ext,writer) -> action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
+        extensions |> List.iter (fun (ext,writer) -> 
+                                    action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
 
         // extension-driven + negotiated media-type
-        let conneg5 (ctx: ControllerContext) = "something something"
+        let conneg5 _ = "something something"
         let basePath = "conneg5"
         let writers = [
                         "xml", ["application/xml"; "text/xml"], Result.xml
