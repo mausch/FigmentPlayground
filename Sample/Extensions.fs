@@ -1,5 +1,6 @@
 ﻿namespace Figment
 
+open System
 open WingBeats.Xml
 open System.Web.Mvc
 
@@ -199,7 +200,10 @@ module ConnegIntegration =
         FsConneg.bestLanguage lang (accepted ctx)
 
     module Result =
-        let notAcceptable = status 406 >>. content "Not Acceptable"
+        let notAcceptable = status 406
+        let methodNotAllowed (allowedMethods: #seq<string>) = 
+            status 405 
+            >>. header "Allow" (String.Join(", ", allowedMethods))
 
     /// <summary>
     /// Routing function that matches if client accepts the specified media type

@@ -291,6 +291,8 @@ let webactions () =
 
         // finally we register the action with negotiation
         get "conneg1" (negotiateActionMediaType writers conneg1)
+        // handle disallowed methods
+        action (ifPathIs "conneg1") (fun _ -> Result.methodNotAllowed ["GET"])
 
         // another example including a text/html media type:
         let conneg2 _ = "hello"
@@ -300,12 +302,15 @@ let webactions () =
         let conneg2writers = (["text/html"], wbview)::writers
         // finally we register the action with negotiation
         get "conneg2" (negotiateActionMediaType conneg2writers conneg2)
+        // handle disallowed methods
+        action (ifPathIs "conneg2") (fun _ -> Result.methodNotAllowed ["GET"])
 
         // Another example with no true negotiation, client's preferences are ignored
         // a simple action (user-level code)
         let conneg3 _ = "world"
-        // partial routing function
-        let ifConneg3Get = ifMethodIsGet &&. ifPathIs "conneg3"
+        // partial routing functions
+        let ifConneg3 = ifPathIs "conneg3"
+        let ifConneg3Get = ifMethodIsGet &&. ifConneg3
         // if client accepts xml, respond with xml
         action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (conneg3 >> Result.xml)
         // if client accepts json, respond with json
@@ -319,6 +324,8 @@ let webactions () =
         action (ifConneg3Get &&. ifAccepts "text/html") (conneg3 >> wbview)
         // if client didn't accept any of the previously defined media types, respond with 406 (not acceptable)
         action ifConneg3Get (fun _ -> Result.notAcceptable)
+        // handle disallowed methods
+        action ifConneg3 (fun _ -> Result.methodNotAllowed ["GET"])
             
         // extension-driven media-type selection
         let conneg4 _ = "bye world"
@@ -328,7 +335,10 @@ let webactions () =
                             "html", wbview
                          ]
         extensions |> List.iter (fun (ext,writer) -> 
-                                    action (ifPathIsf "conneg4.%s" ext) (conneg4 >> writer))
+                                    let ifConneg4 = ifPathIsf "conneg4.%s" ext
+                                    action (ifMethodIsGet &&. ifConneg4) (conneg4 >> writer)
+                                    // handle disallowed methods
+                                    action ifConneg4 (fun _ -> Result.methodNotAllowed ["GET"]))
 
         // extension-driven + negotiated media-type
         let conneg5 _ = "something something"
@@ -339,9 +349,15 @@ let webactions () =
                         "html", ["text/html"], wbview
                       ]
         writers |> List.iter (fun (ext,_,writer) -> 
-                                action (ifPathIsf "%s.%s" basePath ext) (conneg5 >> writer))
+                                let ifBasePath = ifPathIsf "%s.%s" basePath ext
+                                action (ifMethodIsGet &&. ifBasePath) (conneg5 >> writer)
+                                // handle disallowed methods
+                                action ifBasePath (fun _ -> Result.methodNotAllowed ["GET"]))
         let mediaTypes = List.map (fun (_,a,b) -> a,b) writers
-        action (ifPathIs basePath) (negotiateActionMediaType mediaTypes conneg5)
+        let ifBasePath = ifPathIs basePath
+        action (ifMethodIsGet &&. ifBasePath) (negotiateActionMediaType mediaTypes conneg5)
+        // handle disallowed methods
+        action ifBasePath (fun _ -> Result.methodNotAllowed ["GET"])
         ()
 
     ()
