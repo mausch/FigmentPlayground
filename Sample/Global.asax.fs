@@ -12,7 +12,7 @@ do()
 type MvcApplication() =
     inherit HttpApplication()
     member this.Application_Start() = 
-        // filter demo
+        // standard ASP.NET MVC filter demo
         let filter = 
             { new IActionFilter with
                 member x.OnActionExecuted ctx = ()
@@ -22,5 +22,5 @@ type MvcApplication() =
         GlobalFilters.Filters.Add filter
 
         // register Figment actions
-        webactions()
-        notfound()
+        webActions()
+        genericActions()

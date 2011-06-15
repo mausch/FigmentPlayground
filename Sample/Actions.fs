@@ -33,7 +33,7 @@ open System.Globalization
 open System.IO
 open System.IO.Compression
 
-let webactions () =
+let webActions () =
 
     // hello world
     get "hi" (content "<h1>Hello World!</h1>")
@@ -353,7 +353,7 @@ let webactions () =
 open System.Web.Routing
 
 // registers low-priority actions that should match last
-let notfound () =
+let genericActions () =
     let withMethod httpMethod (ctx: HttpContextBase) : HttpContextBase =
         upcast { new DelegatingHttpContextBase(ctx) with
                     override x.Request =
