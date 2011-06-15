@@ -291,8 +291,6 @@ let webactions () =
 
         // finally we register the action with negotiation
         get "conneg1" (negotiateActionMediaType writers conneg1)
-        // handle disallowed methods
-        action (ifPathIs "conneg1") (fun _ -> Result.methodNotAllowed ["GET"])
 
         // another example including a text/html media type:
         let conneg2 _ = "hello"
@@ -302,8 +300,6 @@ let webactions () =
         let conneg2writers = (["text/html"], wbview)::writers
         // finally we register the action with negotiation
         get "conneg2" (negotiateActionMediaType conneg2writers conneg2)
-        // handle disallowed methods
-        action (ifPathIs "conneg2") (fun _ -> Result.methodNotAllowed ["GET"])
 
         // Another example with no true negotiation, client's preferences are ignored
         // a simple action (user-level code)
@@ -324,8 +320,6 @@ let webactions () =
         action (ifConneg3Get &&. ifAccepts "text/html") (conneg3 >> wbview)
         // if client didn't accept any of the previously defined media types, respond with 406 (not acceptable)
         action ifConneg3Get (fun _ -> Result.notAcceptable)
-        // handle disallowed methods
-        action ifConneg3 (fun _ -> Result.methodNotAllowed ["GET"])
             
         // extension-driven media-type selection
         let conneg4 _ = "bye world"
@@ -336,9 +330,7 @@ let webactions () =
                          ]
         extensions |> List.iter (fun (ext,writer) -> 
                                     let ifConneg4 = ifPathIsf "conneg4.%s" ext
-                                    action (ifMethodIsGet &&. ifConneg4) (conneg4 >> writer)
-                                    // handle disallowed methods
-                                    action ifConneg4 (fun _ -> Result.methodNotAllowed ["GET"]))
+                                    action (ifMethodIsGet &&. ifConneg4) (conneg4 >> writer))
 
         // extension-driven + negotiated media-type
         let conneg5 _ = "something something"
@@ -350,14 +342,10 @@ let webactions () =
                       ]
         writers |> List.iter (fun (ext,_,writer) -> 
                                 let ifBasePath = ifPathIsf "%s.%s" basePath ext
-                                action (ifMethodIsGet &&. ifBasePath) (conneg5 >> writer)
-                                // handle disallowed methods
-                                action ifBasePath (fun _ -> Result.methodNotAllowed ["GET"]))
+                                action (ifMethodIsGet &&. ifBasePath) (conneg5 >> writer))
         let mediaTypes = List.map (fun (_,a,b) -> a,b) writers
         let ifBasePath = ifPathIs basePath
         action (ifMethodIsGet &&. ifBasePath) (negotiateActionMediaType mediaTypes conneg5)
-        // handle disallowed methods
-        action ifBasePath (fun _ -> Result.methodNotAllowed ["GET"])
         ()
 
     ()
@@ -366,23 +354,29 @@ open System.Web.Routing
 
 // registers low-priority actions that should match last
 let notfound () =
-    // The '=>' operator concatenates handlers, running them sequentially
-    let notFound = status 404 => content "<h1>Not found!</h1>"
+    let withMethod httpMethod (ctx: HttpContextBase) : HttpContextBase =
+        upcast { new DelegatingHttpContextBase(ctx) with
+                    override x.Request =
+                        upcast { new DelegatingHttpRequestBase(ctx.Request) with
+                                    override x.HttpMethod = httpMethod } }
 
     // generic HEAD support
-    action ifMethodIsHead 
+    action ifMethodIsHead
         (fun cctx -> 
-            let newContext = 
-                { new DelegatingHttpContextBase(cctx.HttpContext) with
-                    override x.Request =
-                        upcast { new DelegatingHttpRequestBase(cctx.HttpContext.Request) with
-                                    override x.HttpMethod = "GET" } }
+            let newContext = cctx.HttpContext |> withMethod "GET"
             match RouteTable.Routes.GetRouteData newContext with
-            | null -> notFound cctx
+            | null -> Result.status 404
             | route -> 
                 let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
                 result (fun ctx -> handler.ProcessRequest ctx.HttpContext.UnderlyingHttpContext))
 
-    // no action found, return 404
-    action any notFound
-
+    // generic OPTIONS support
+    action ifMethodIsOptions
+        (fun cctx ->
+            let supportsMethod httpMethod = 
+                let route = cctx.HttpContext |> withMethod httpMethod |> RouteTable.Routes.GetRouteData
+                route <> null
+            ["GET"; "POST"; "HEAD"; "PUT"; "DELETE"]
+            |> Seq.filter supportsMethod
+            |> Result.allow)
+            
