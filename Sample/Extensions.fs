@@ -202,8 +202,7 @@ module ConnegIntegration =
     module Result =
         let notAcceptable = status 406
         let methodNotAllowed (allowedMethods: #seq<string>) = 
-            status 405 
-            >>. header "Allow" (String.Join(", ", allowedMethods))
+            status 405 >>. allow allowedMethods
 
     /// <summary>
     /// Routing function that matches if client accepts the specified media type
