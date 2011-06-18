@@ -280,8 +280,8 @@ let webActions () =
     // content negotiation
     let () =
         // first, an action returning any value (not an ActionResult). 
-        // This is user-level code
-        let conneg1 _ = 5
+        // This is application-level code
+        let connegAction _ = "hello world"
 
         // now we define the available media type writers in a table
         let writers = [
@@ -290,39 +290,35 @@ let webActions () =
                       ]
 
         // finally we register the action with negotiation
-        get "conneg1" (negotiateActionMediaType writers conneg1)
+        get "conneg1" (negotiateActionMediaType writers connegAction)
 
         // another example including a text/html media type:
-        let conneg2 _ = "hello"
         // a Wing Beats (html) ActionResult generator
         let wbview = wbpage >> Result.wbview
         // we add html to the list of available media types
         let conneg2writers = (["text/html"], wbview)::writers
         // finally we register the action with negotiation
-        get "conneg2" (negotiateActionMediaType conneg2writers conneg2)
+        get "conneg2" (negotiateActionMediaType conneg2writers connegAction)
 
         // Another example with no true negotiation, client's preferences are ignored
-        // a simple action (user-level code)
-        let conneg3 _ = "world"
         // partial routing functions
         let ifConneg3 = ifPathIs "conneg3"
         let ifConneg3Get = ifMethodIsGet &&. ifConneg3
         // if client accepts xml, respond with xml
-        action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (conneg3 >> Result.xml)
+        action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (connegAction >> Result.xml)
         // if client accepts json, respond with json
-        action (ifConneg3Get &&. ifAccepts "application/json") (conneg3 >> Result.json)
+        action (ifConneg3Get &&. ifAccepts "application/json") (connegAction >> Result.json)
         // jsonp
         let getCallback (ctx: HttpContextBase) = ctx.Request.QueryString.["callback"]
         let jsonp = Result.jsonp (fun ctx -> getCallback ctx.HttpContext)
         let ifCallbackDefined (ctx,_) = getCallback ctx |> String.IsNullOrEmpty |> not
-        action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (conneg3 >> jsonp)
+        action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (connegAction >> jsonp)
         // finally, html
-        action (ifConneg3Get &&. ifAccepts "text/html") (conneg3 >> wbview)
+        action (ifConneg3Get &&. ifAccepts "text/html") (connegAction >> wbview)
         // if client didn't accept any of the previously defined media types, respond with 406 (not acceptable)
         action ifConneg3Get (fun _ -> Result.notAcceptable)
             
         // extension-driven media-type selection
-        let conneg4 _ = "bye world"
         let extensions = [
                             "xml", Result.xml
                             "json", Result.json
@@ -330,10 +326,9 @@ let webActions () =
                          ]
         extensions |> List.iter (fun (ext,writer) -> 
                                     let ifConneg4 = ifPathIsf "conneg4.%s" ext
-                                    action (ifMethodIsGet &&. ifConneg4) (conneg4 >> writer))
+                                    action (ifMethodIsGet &&. ifConneg4) (connegAction >> writer))
 
         // extension-driven + negotiated media-type
-        let conneg5 _ = "something something"
         let basePath = "conneg5"
         let writers = [
                         "xml", ["application/xml"; "text/xml"], Result.xml
@@ -342,10 +337,10 @@ let webActions () =
                       ]
         writers |> List.iter (fun (ext,_,writer) -> 
                                 let ifBasePath = ifPathIsf "%s.%s" basePath ext
-                                action (ifMethodIsGet &&. ifBasePath) (conneg5 >> writer))
+                                action (ifMethodIsGet &&. ifBasePath) (connegAction >> writer))
         let mediaTypes = List.map (fun (_,a,b) -> a,b) writers
         let ifBasePath = ifPathIs basePath
-        action (ifMethodIsGet &&. ifBasePath) (negotiateActionMediaType mediaTypes conneg5)
+        action (ifMethodIsGet &&. ifBasePath) (negotiateActionMediaType mediaTypes connegAction)
         ()
 
     ()
@@ -354,7 +349,6 @@ open System.Web.Routing
 
 // registers low-priority actions that should match last
 let genericActions () =
-    let allMethods = ["GET"; "POST"; "HEAD"; "PUT"; "DELETE"]
 
     let withMethod httpMethod (ctx: HttpContextBase) : HttpContextBase =
         upcast { new DelegatingHttpContextBase(ctx) with
@@ -378,6 +372,8 @@ let genericActions () =
         let route = cctx.HttpContext |> withMethod httpMethod |> routes.GetRouteData
         route <> null
 
+    let allMethods = ["GET"; "POST"; "HEAD"; "PUT"; "DELETE"]
+
     // generic OPTIONS support
     action ifMethodIsOptions
         (fun cctx ->
@@ -388,7 +384,7 @@ let genericActions () =
     allMethods
     |> List.iter (fun metod ->
                     let otherMethods = allMethods |> Seq.filter ((<>) metod)
-                    action (ifMethodIs metod) 
+                    action (ifMethodIs metod)
                         (fun cctx ->
                             let supportedMethods = otherMethods |> Seq.filter (supportsMethod cctx) |> Seq.toList
                             match supportedMethods with
