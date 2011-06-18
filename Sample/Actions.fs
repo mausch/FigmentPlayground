@@ -324,9 +324,9 @@ let webActions () =
                             "json", Result.json
                             "html", wbview
                          ]
-        extensions |> List.iter (fun (ext,writer) -> 
-                                    let ifConneg4 = ifPathIsf "conneg4.%s" ext
-                                    action (ifMethodIsGet &&. ifConneg4) (connegAction >> writer))
+        for ext,writer in extensions do
+            let ifConneg4 = ifPathIsf "conneg4.%s" ext
+            action (ifMethodIsGet &&. ifConneg4) (connegAction >> writer)
 
         // extension-driven + negotiated media-type
         let basePath = "conneg5"
@@ -335,9 +335,9 @@ let webActions () =
                         "json", ["application/json"], Result.json
                         "html", ["text/html"], wbview
                       ]
-        writers |> List.iter (fun (ext,_,writer) -> 
-                                let ifBasePath = ifPathIsf "%s.%s" basePath ext
-                                action (ifMethodIsGet &&. ifBasePath) (connegAction >> writer))
+        for ext,_,writer in writers do 
+            let ifBasePath = ifPathIsf "%s.%s" basePath ext
+            action (ifMethodIsGet &&. ifBasePath) (connegAction >> writer)
         let mediaTypes = List.map (fun (_,a,b) -> a,b) writers
         let ifBasePath = ifPathIs basePath
         action (ifMethodIsGet &&. ifBasePath) (negotiateActionMediaType mediaTypes connegAction)
