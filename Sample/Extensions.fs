@@ -5,8 +5,8 @@ open WingBeats.Xml
 open System.Web.Mvc
 
 module Result =
-    let wbview (n: Node list) =
-        Result.result (fun ctx -> Renderer.Render(n, ctx.HttpContext.Response.Output))
+    let wbview (n: Node list) : Helpers.FResult =
+        fun ctx -> Renderer.Render(n, ctx.HttpContext.Response.Output)
 
     open Formlets
 
@@ -65,7 +65,7 @@ module FormletsExtensions =
     type 'a FormActionParameters = {
         Formlet: ControllerContext -> 'a Formlet
         Page: ControllerContext -> XNode list -> Node list
-        Success: ControllerContext -> 'a -> ActionResult
+        Success: ControllerContext -> 'a -> Helpers.FResult
     }
 
     /// <summary>
@@ -200,9 +200,9 @@ module ConnegIntegration =
         FsConneg.bestLanguage lang (accepted ctx)
 
     module Result =
-        let notAcceptable = status 406
-        let methodNotAllowed (allowedMethods: #seq<string>) = 
-            status 405 >>. allow allowedMethods
+        let notAcceptable x = status 406 x
+        let methodNotAllowed allowedMethods = 
+            status 405 >>> allow allowedMethods
 
     /// <summary>
     /// Routing function that matches if client accepts the specified media type
@@ -236,5 +236,5 @@ module ConnegIntegration =
             match bestOf (accepted ctx) with
             | Some a -> 
                 let writer = List.find (fst >> List.exists ((=)a)) writers |> snd
-                (action ctx |> writer) >>. vary "Accept"
+                (action ctx |> writer) >>> vary "Accept"
             | _ -> Result.notAcceptable

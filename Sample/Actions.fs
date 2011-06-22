@@ -74,12 +74,14 @@ let webActions () =
     getf "route/{firstname:%s}/{lastname:%s}/{age:%d}" nameAndAge
 
     // strongly-typed route+binding with access to HttpContext
-    getf "route/{name:%s}" 
-        (fun name -> 
-            result (fun ctx ->
-                ctx.Response.Writefn "Hello %s" name
-                ctx.Response.Writefn "Your IP is: %s" ctx.IP)
-            >>. Result.contentType "text/plain") // The '>>.' operator concatenates ActionResults, running them sequentially
+    getf "route/{name:%s}"
+        (fun name ->
+            FActionResult {
+                do! writefn "Hello %s" name
+                let! ip = fun ctx -> ctx.IP
+                do! writefn "Your IP is: %s" ip
+                do! Result.contentType "text/plain"
+            })
 
     // wing beats integration
 
@@ -364,7 +366,7 @@ let genericActions () =
             | null -> Result.status 404
             | route -> 
                 let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
-                result (fun ctx -> handler.ProcessRequest ctx.HttpContext.UnderlyingHttpContext))
+                fun ctx -> handler.ProcessRequest ctx.HttpContext.UnderlyingHttpContext)
 
     let routes = RouteTable.Routes.Clone() // shallow copy of routes registered so far
 
