@@ -16,7 +16,8 @@ let ``get /`` () =
     let redirectUrl = ref ""
     let ctx = buildResponse route
                 { new HttpResponseBase() with
-                    override y.Redirect(url, e) = redirectUrl := url; () }
+                    override y.Redirect(url, e) = 
+                        redirectUrl := url }
     controller.Execute ctx
     Assert.Equal("hi", !redirectUrl)
 
