@@ -358,17 +358,16 @@ let genericActions () =
     action ifMethodIsHead
         (fun cctx -> 
             let newContext = cctx.HttpContext |> withMethod "GET"
-            match RouteTable.Routes.GetRouteData newContext with
-            | null -> status 404 cctx
-            | route -> 
+            match RouteTable.Routes.tryGetRouteData newContext with
+            | None -> status 404 cctx
+            | Some route -> 
                 let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
                 handler.ProcessRequest cctx.HttpContext.UnderlyingHttpContext)
 
     let routes = RouteTable.Routes.Clone() // shallow copy of routes registered so far
 
     let supportsMethod (cctx: ControllerContext) httpMethod = 
-        let route = cctx.HttpContext |> withMethod httpMethod |> routes.GetRouteData
-        route <> null
+        cctx.HttpContext |> withMethod httpMethod |> routes.tryGetRouteData |> Option.isSome
 
     let allMethods = ["GET"; "POST"; "HEAD"; "PUT"; "DELETE"]
 
