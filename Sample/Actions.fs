@@ -15,16 +15,8 @@ type PersonalInfo = {
 }
 
 open Figment
-open Figment.Helpers
-open Figment.Routing
-open Figment.Filters
-open Figment.Binding
-open Figment.Result
-open Figment.Extensions
-open Figment.ReaderOperators
 open WingBeats
 open WingBeats.Xhtml
-open Figment.RoutingConstraints
 open System.Diagnostics
 open System.Net
 open global.Formlets
@@ -42,7 +34,7 @@ let webActions () =
     get "" (redirect "hi")
 
     // applying cache as a filter, showing a regular ASP.NET MVC view
-    let cache300 = cache (OutputCacheParameters(Duration = 300, Location = OutputCacheLocation.Any))
+    let cache300 = Filters.cache (OutputCacheParameters(Duration = 300, Location = OutputCacheLocation.Any))
     get "showform" (cache300 <| view "sampleform" { FirstName = "Cacho"; LastName = "Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime(1942,6,11) })
    
     // handle post to "/showdata"
@@ -70,7 +62,7 @@ let webActions () =
         let! msg = bindQuerystring greet'
         do! view "someview" msg
     })*)
-    get "greetme2" (bindQuerystring greet' >>= view "someview")
+    get "greetme2" (Binding.bindQuerystring greet' >>= view "someview")
 
     // strongly-typed route+binding
     let nameAndAge firstname lastname age = 
@@ -116,7 +108,7 @@ let webActions () =
 
     let google (ctx: ControllerContext) = async {
         Debug.WriteLine "Start async action"
-        let query = ctx.Url.Segments.[2] |> urlencode
+        let query = ctx.Url.Segments.[2] |> Helpers.urlencode
         use web = new WebClient()
         let! response = web.AsyncDownloadString(Uri("http://www.google.com/search?q=" + query))
         Debug.WriteLine "got google response"

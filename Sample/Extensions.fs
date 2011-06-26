@@ -4,6 +4,7 @@ open System
 open WingBeats.Xml
 open System.Web.Mvc
 
+[<AutoOpen>]
 module Result =
     let wbview (n: Node list) : Helpers.FAction =
         fun ctx -> Renderer.Render(n, ctx.HttpContext.Response.Output)
