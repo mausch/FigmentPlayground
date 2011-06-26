@@ -20,8 +20,8 @@ open Figment.Routing
 open Figment.Filters
 open Figment.Binding
 open Figment.Result
-open Figment.Actions
 open Figment.Extensions
+open Figment.ReaderOperators
 open WingBeats
 open WingBeats.Xhtml
 open Figment.RoutingConstraints
@@ -50,8 +50,8 @@ let webActions () =
     let greet name = sprintf "Hello %s" name
     // binding to request
     let greet' (ctx: ControllerContext) = 
-        let boundGreet = greet >> Result.contentf "<h1>%s</h1>"
-        boundGreet ctx.["somefield"]
+        let boundGreet = greet >> contentf "<h1>%s</h1>"
+        boundGreet ctx.["somefield"] ctx
     post "showdata" greet'
 
     // handle get to "/showdata"
@@ -61,26 +61,30 @@ let webActions () =
     // binding to request
     let greet' (ctx: ControllerContext) =
         greet ctx.["firstname"] ctx.["lastname"] (int ctx.["age"])
-        |> sprintf "<p>%s</p>" |> Result.content
+        |> sprintf "<p>%s</p>" |> content <| ctx
     get "showdata" greet'
 
     let greet' (p: NameValueCollection) = 
         greet p.["firstname"] p.["lastname"] (int p.["age"])
-    get "greetme2" (bindQuerystring greet' >> Result.view "someview")
+    (*get "greetme2" (result {
+        let! msg = bindQuerystring greet'
+        do! view "someview" msg
+    })*)
+    get "greetme2" (bindQuerystring greet' >>= view "someview")
 
     // strongly-typed route+binding
     let nameAndAge firstname lastname age = 
-        Result.contentf "Hello %s %s, %d years old" firstname lastname age
+        contentf "Hello %s %s, %d years old" firstname lastname age
     getf "route/{firstname:%s}/{lastname:%s}/{age:%d}" nameAndAge
 
     // strongly-typed route+binding with access to HttpContext
     getf "route/{name:%s}"
         (fun name ->
-            FActionResult {
+            result {
                 do! writefn "Hello %s" name
                 let! ip = fun ctx -> ctx.IP
                 do! writefn "Your IP is: %s" ip
-                do! Result.contentType "text/plain"
+                do! contentType "text/plain"
             })
 
     // wing beats integration
@@ -96,7 +100,7 @@ let webActions () =
                 e.H1 [ &title ]
             ]
         ]]
-    let wbpageview = wbpage >> Actions.wbview
+    let wbpageview = wbpage >> wbview
     get "wingbeats" (wbpageview "Hello World from Wing Beats")
 
     // routing dsl
@@ -114,9 +118,9 @@ let webActions () =
         Debug.WriteLine "Start async action"
         let query = ctx.Url.Segments.[2] |> urlencode
         use web = new WebClient()
-        let! content = web.AsyncDownloadString(Uri("http://www.google.com/search?q=" + query))
+        let! response = web.AsyncDownloadString(Uri("http://www.google.com/search?q=" + query))
         Debug.WriteLine "got google response"
-        return Result.content content
+        return content response ctx
     }
     asyncAction (ifMethodIsGet &&. ifUrlMatches "^/google/") google
 
@@ -217,20 +221,20 @@ let webActions () =
             //jsValidation
         ]
 
-    get "thankyou" (fun ctx -> Result.contentf "Thank you for registering, %s" ctx.QueryString.["n"])
+    get "thankyou" (fun ctx -> contentf "Thank you for registering, %s" ctx.QueryString.["n"] ctx)
             
     formAction "register" {
         Formlet = fun ctx -> registrationFormlet ctx.IP
         Page = fun _ -> registrationPage
-        Success = fun _ v -> Result.redirectf "thankyou?n=%s" v.FirstName
+        Success = fun _ v -> redirectf "thankyou?n=%s" v.FirstName
     }
 
     // http://www.paulgraham.com/arcchallenge.html
     let arcChallenge() =            
         let k,url,url2 = "s","said","showsaid"
         get url (wbview [s.FormPost url [e.Input ["name",k]; s.Submit "Send"]])
-        post url (fun ctx -> (k, ctx.Form.[k]) ||> ctx.Session.Set; Result.wbview [s.Link url2 "click here"])
-        get url2 (fun ctx -> Result.wbview [&ctx.Session.Get(k)])
+        post url (fun ctx -> (k, ctx.Form.[k]) ||> ctx.Session.Set; wbview [s.Link url2 "click here"] ctx)
+        get url2 (fun ctx -> wbview [&ctx.Session.Get(k)] ctx)
     //arcChallenge()
 
     // http://www.paulgraham.com/arcchallenge.html
@@ -243,8 +247,8 @@ let webActions () =
                 Success = action
             }
         let k,url = "s","showsaid"
-        getpost "said" (f.Text()) (fun ctx v -> ctx.Session.Set k v; Result.wbview [s.Link url "click here"])
-        get url (fun ctx -> Result.wbview [&ctx.Session.Get(k)])
+        getpost "said" (f.Text()) (fun ctx v -> ctx.Session.Set k v; wbview [s.Link url "click here"])
+        get url (fun ctx -> wbview [&ctx.Session.Get(k)] ctx)
     //arcChallenge2()
 
     let formletSequence() =
@@ -288,7 +292,7 @@ let webActions () =
         // now we define the available media type writers in a table
         let writers = [
                         ["text/xml"; "application/xml"], Result.xml
-                        ["application/json"], Result.json
+                        ["application/json"], json
                       ]
 
         // finally we register the action with negotiation
@@ -296,7 +300,7 @@ let webActions () =
 
         // another example including a text/html media type:
         // a Wing Beats (html) ActionResult generator
-        let wbview = wbpage >> Result.wbview
+        let wbview = wbpage >> wbview
         // we add html to the list of available media types
         let conneg2writers = (["text/html"], wbview)::writers
         // finally we register the action with negotiation
@@ -307,39 +311,39 @@ let webActions () =
         let ifConneg3 = ifPathIs "conneg3"
         let ifConneg3Get = ifMethodIsGet &&. ifConneg3
         // if client accepts xml, respond with xml
-        action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (connegAction >> Result.xml)
+        action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (connegAction >>= Result.xml)
         // if client accepts json, respond with json
-        action (ifConneg3Get &&. ifAccepts "application/json") (connegAction >> Result.json)
+        action (ifConneg3Get &&. ifAccepts "application/json") (connegAction >>= json)
         // jsonp
         let getCallback (ctx: HttpContextBase) = ctx.Request.QueryString.["callback"]
-        let jsonp = Result.jsonp (fun ctx -> getCallback ctx.HttpContext)
+        let jsonp = jsonp (fun ctx -> getCallback ctx.HttpContext)
         let ifCallbackDefined (ctx,_) = getCallback ctx |> String.IsNullOrEmpty |> not
-        action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (connegAction >> jsonp)
+        action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (connegAction >>= jsonp)
         // finally, html
-        action (ifConneg3Get &&. ifAccepts "text/html") (connegAction >> wbview)
+        action (ifConneg3Get &&. ifAccepts "text/html") (connegAction >>= wbview)
         // if client didn't accept any of the previously defined media types, respond with 406 (not acceptable)
-        action ifConneg3Get (fun _ -> Result.notAcceptable)
+        action ifConneg3Get Result.notAcceptable
             
         // extension-driven media-type selection
         let extensions = [
                             "xml", Result.xml
-                            "json", Result.json
+                            "json", json
                             "html", wbview
                          ]
         for ext,writer in extensions do
             let ifConneg4 = ifPathIsf "conneg4.%s" ext
-            action (ifMethodIsGet &&. ifConneg4) (connegAction >> writer)
+            action (ifMethodIsGet &&. ifConneg4) (connegAction >>= writer)
 
         // extension-driven + negotiated media-type
         let basePath = "conneg5"
         let writers = [
                         "xml", ["application/xml"; "text/xml"], Result.xml
-                        "json", ["application/json"], Result.json
+                        "json", ["application/json"], json
                         "html", ["text/html"], wbview
                       ]
         for ext,_,writer in writers do 
             let ifBasePath = ifPathIsf "%s.%s" basePath ext
-            action (ifMethodIsGet &&. ifBasePath) (connegAction >> writer)
+            action (ifMethodIsGet &&. ifBasePath) (connegAction >>= writer)
         let mediaTypes = List.map (fun (_,a,b) -> a,b) writers
         let ifBasePath = ifPathIs basePath
         action (ifMethodIsGet &&. ifBasePath) (negotiateActionMediaType mediaTypes connegAction)
@@ -363,10 +367,10 @@ let genericActions () =
         (fun cctx -> 
             let newContext = cctx.HttpContext |> withMethod "GET"
             match RouteTable.Routes.GetRouteData newContext with
-            | null -> Result.status 404
+            | null -> status 404 cctx
             | route -> 
                 let handler = route.RouteHandler.GetHttpHandler cctx.RequestContext
-                fun ctx -> handler.ProcessRequest ctx.HttpContext.UnderlyingHttpContext)
+                handler.ProcessRequest cctx.HttpContext.UnderlyingHttpContext)
 
     let routes = RouteTable.Routes.Clone() // shallow copy of routes registered so far
 
@@ -379,9 +383,8 @@ let genericActions () =
     // generic OPTIONS support
     action ifMethodIsOptions
         (fun cctx ->
-            allMethods
-            |> Seq.filter (supportsMethod cctx)
-            |> Result.allow)
+            let supportedMethods = allMethods |> Seq.filter (supportsMethod cctx)
+            allow supportedMethods cctx)
 
     allMethods
     |> List.iter (fun metod ->
@@ -390,6 +393,6 @@ let genericActions () =
                         (fun cctx ->
                             let supportedMethods = otherMethods |> Seq.filter (supportsMethod cctx) |> Seq.toList
                             match supportedMethods with
-                            | [] -> Result.status 404
-                            | x -> Result.methodNotAllowed x))
+                            | [] -> status 404 cctx
+                            | x -> Result.methodNotAllowed x cctx))
                             

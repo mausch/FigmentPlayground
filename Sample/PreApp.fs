@@ -1,7 +1,7 @@
 ﻿namespace SampleApp
 
 open Figment.Routing
-open Figment.Actions
+open Figment.Result
 
 type PreAppStart() =
     static member Initialize() =

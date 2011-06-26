@@ -5,16 +5,12 @@ open WingBeats.Xml
 open System.Web.Mvc
 
 module Result =
-    let wbview (n: Node list) : Helpers.FResult =
+    let wbview (n: Node list) : Helpers.FAction =
         fun ctx -> Renderer.Render(n, ctx.HttpContext.Response.Output)
 
     open Formlets
 
     let formlet (f: _ Formlet) = Result.content (render f)
-
-module Actions =
-    let wbview (n: Node list) (ctx: ControllerContext) =
-        Result.wbview n
 
 [<AutoOpen>]
 module XhtmlElementExtensions = 
@@ -65,7 +61,7 @@ module FormletsExtensions =
     type 'a FormActionParameters = {
         Formlet: ControllerContext -> 'a Formlet
         Page: ControllerContext -> XNode list -> Node list
-        Success: ControllerContext -> 'a -> Helpers.FResult
+        Success: ControllerContext -> 'a -> Helpers.FAction
     }
 
     /// <summary>
@@ -79,12 +75,12 @@ module FormletsExtensions =
         get url 
             (fun ctx -> 
                 let xml = p.Formlet ctx |> renderToXml
-                p.Page ctx xml |> Result.wbview)
+                Result.wbview (p.Page ctx xml) ctx)
         post url
             (fun ctx -> 
                 match runPost (p.Formlet ctx) ctx with
-                | Success v -> p.Success ctx v
-                | Failure(errorForm, _) -> p.Page ctx errorForm |> Result.wbview)
+                | Success v -> p.Success ctx v ctx
+                | Failure(errorForm, _) -> Result.wbview (p.Page ctx errorForm) ctx)
 
     /// <summary>
     /// 'a : state
@@ -117,7 +113,7 @@ module FormletsExtensions =
                 let newState, formlet = a ctx s v
                 let formlet = setState newState formlet
                 let formlet = aform nextUrl formlet
-                Result.formlet formlet
+                Result.formlet formlet ctx
             | _ -> failwith "bla"
 
     let actionFormlet thisFormlet a (url, i) =
@@ -162,7 +158,7 @@ module FormletsExtensions =
                 let cont = getState ctx
                 match cont with
                 | null -> 
-                    w ctx |> Result.formlet
+                    Result.formlet (w ctx) ctx
                 | _ -> 
                     let t: Type = cont.GetType().GetProperty("Item2").GetValue(cont, null) |> unbox
                     let c = cont.GetType().GetProperty("Item1").GetValue(cont, null)
@@ -181,6 +177,7 @@ module ConnegIntegration =
     open Figment.Extensions
     open Figment.RoutingConstraints
     open Figment.Result
+    open Figment.ReaderOperators
 
     let internal haccept = "Accept"
 
@@ -202,7 +199,7 @@ module ConnegIntegration =
     module Result =
         let notAcceptable x = status 406 x
         let methodNotAllowed allowedMethods = 
-            status 405 >>> allow allowedMethods
+            status 405 >>. allow allowedMethods
 
     /// <summary>
     /// Routing function that matches if client accepts the specified media type
@@ -233,8 +230,10 @@ module ConnegIntegration =
         let servedMedia = List.collect fst writers
         let bestOf = FsConneg.bestMediaType servedMedia >> Option.map fst
         fun ctx ->
-            match bestOf (accepted ctx) with
-            | Some a -> 
-                let writer = List.find (fst >> List.exists ((=)a)) writers |> snd
-                (action ctx |> writer) >>> vary "Accept"
-            | _ -> Result.notAcceptable
+            let a = 
+                match bestOf (accepted ctx) with
+                | Some a -> 
+                    let writer = List.find (fst >> List.exists ((=)a)) writers |> snd
+                    (action ctx |> writer) >>. vary "Accept"
+                | _ -> Result.notAcceptable
+            a ctx
