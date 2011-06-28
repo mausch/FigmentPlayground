@@ -233,8 +233,8 @@ module ConnegIntegration =
         fun ctx ->
             let a = 
                 match bestOf (accepted ctx) with
-                | Some a -> 
-                    let writer = List.find (fst >> List.exists ((=)a)) writers |> snd
+                | Some mediaType -> 
+                    let writer = writers |> List.find (fst >> List.exists ((=)mediaType)) |> snd
                     (action ctx |> writer) >>. vary "Accept"
                 | _ -> Result.notAcceptable
             a ctx
