@@ -98,6 +98,7 @@ let webActions () =
     // routing dsl
     let ifGetDsl = ifUrlMatches "^/dsl" &&. ifMethodIsGet
 
+
     action 
         (ifGetDsl &&. !. (ifUserAgentMatches "MSIE"))
         (wbpageview "You're NOT using Internet Explorer")
@@ -353,6 +354,15 @@ let genericActions () =
                     override x.Request =
                         upcast { new DelegatingHttpRequestBase(ctx.Request) with
                                     override x.HttpMethod = httpMethod } }
+
+    let ifHeadMod r =
+        fun (ctx: HttpContextBase, route: RouteData) ->
+            if ctx.Request.HttpMethod <>. "HEAD"
+                then r (ctx, route)
+                else
+                    let getCtx = ctx |> withMethod "GET"
+                    r (getCtx, route)
+
 
     // generic HEAD support
     action ifMethodIsHead
