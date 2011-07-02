@@ -229,12 +229,13 @@ module ConnegIntegration =
     /// <param name="action"></param>
     let negotiateActionMediaType writers action =
         let servedMedia = List.collect fst writers
-        let bestOf = FsConneg.bestMediaType servedMedia >> Option.map fst
+        let bestOf = accepted >> FsConneg.bestMediaType servedMedia >> Option.map fst
+        let findWriterFor mediaType = List.find (fst >> List.exists ((=)mediaType)) >> snd
         fun ctx ->
             let a = 
-                match bestOf (accepted ctx) with
+                match bestOf ctx with
                 | Some mediaType -> 
-                    let writer = writers |> List.find (fst >> List.exists ((=)mediaType)) |> snd
+                    let writer = writers |> findWriterFor mediaType
                     (action ctx |> writer) >>. vary "Accept"
                 | _ -> Result.notAcceptable
             a ctx
