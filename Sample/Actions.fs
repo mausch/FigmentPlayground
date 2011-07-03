@@ -305,14 +305,14 @@ let webActions () =
         // if client accepts xml, respond with xml
         action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (connegAction >>= Result.xml)
         // if client accepts json, respond with json
-        action (ifConneg3Get &&. ifAccepts "application/json") (connegAction >>= json)
+        action (ifConneg3Get &&. ifAcceptsAny ["application/json"]) (connegAction >>= json)
         // jsonp
         let getCallback (ctx: HttpContextBase) = ctx.Request.QueryString.["callback"]
         let jsonp = jsonp (fun ctx -> getCallback ctx.HttpContext)
         let ifCallbackDefined (ctx,_) = getCallback ctx |> String.IsNullOrEmpty |> not
-        action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (connegAction >>= jsonp)
+        action (ifConneg3Get &&. ifAcceptsAny ["application/javascript"] &&. ifCallbackDefined) (connegAction >>= jsonp)
         // finally, html
-        action (ifConneg3Get &&. ifAccepts "text/html") (connegAction >>= html)
+        action (ifConneg3Get &&. ifAcceptsAny ["text/html"]) (connegAction >>= html)
         // if client didn't accept any of the previously defined media types, respond with 406 (not acceptable)
         action ifConneg3Get Result.notAcceptable
             

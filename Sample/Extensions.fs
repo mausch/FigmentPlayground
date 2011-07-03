@@ -203,17 +203,6 @@ module ConnegIntegration =
             status 405 >>. allow allowedMethods
 
     /// <summary>
-    /// Routing function that matches if client accepts the specified media type
-    /// </summary>
-    /// <param name="media"></param>
-    let ifAccepts media : RouteConstraint = 
-        fun (ctx, route) ->
-            ctx.Request.Headers.[haccept] 
-            |> FsConneg.parseFilterSortAccept
-            |> Seq.map fst
-            |> Seq.exists ((=) media)
-
-    /// <summary>
     /// Routing function that matches if client accepts any of the specified media types
     /// </summary>
     /// <param name="media"></param>
