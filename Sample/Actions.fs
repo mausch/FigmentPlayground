@@ -301,8 +301,7 @@ let webActions () =
 
         // Another example with no true negotiation, client's preferences are ignored
         // partial routing functions
-        let ifConneg3 = ifPathIs "conneg3"
-        let ifConneg3Get = ifMethodIsGet &&. ifConneg3
+        let ifConneg3Get = ifMethodIsGet &&. ifPathIs "conneg3"
         // if client accepts xml, respond with xml
         action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (connegAction >>= Result.xml)
         // if client accepts json, respond with json
