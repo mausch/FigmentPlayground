@@ -293,9 +293,9 @@ let webActions () =
 
         // another example including a text/html media type:
         // a Wing Beats (html) ActionResult generator
-        let wbview = wbpage >> wbview
+        let html = wbpage >> wbview
         // we add html to the list of available media types
-        let conneg2writers = (["text/html"], wbview)::writers
+        let conneg2writers = (["text/html"], html)::writers
         // finally we register the action with negotiation
         get "conneg2" (negotiateActionMediaType conneg2writers connegAction)
 
@@ -313,7 +313,7 @@ let webActions () =
         let ifCallbackDefined (ctx,_) = getCallback ctx |> String.IsNullOrEmpty |> not
         action (ifConneg3Get &&. ifAccepts "application/javascript" &&. ifCallbackDefined) (connegAction >>= jsonp)
         // finally, html
-        action (ifConneg3Get &&. ifAccepts "text/html") (connegAction >>= wbview)
+        action (ifConneg3Get &&. ifAccepts "text/html") (connegAction >>= html)
         // if client didn't accept any of the previously defined media types, respond with 406 (not acceptable)
         action ifConneg3Get Result.notAcceptable
             
@@ -321,7 +321,7 @@ let webActions () =
         let extensions = [
                             "xml", Result.xml
                             "json", json
-                            "html", wbview
+                            "html", html
                          ]
         for ext,writer in extensions do
             let ifConneg4 = ifPathIsf "conneg4.%s" ext
@@ -332,7 +332,7 @@ let webActions () =
         let writers = [
                         "xml", ["application/xml"; "text/xml"], Result.xml
                         "json", ["application/json"], json
-                        "html", ["text/html"], wbview
+                        "html", ["text/html"], html
                       ]
         for ext,_,writer in writers do 
             let ifBasePath = ifPathIsf "%s.%s" basePath ext
