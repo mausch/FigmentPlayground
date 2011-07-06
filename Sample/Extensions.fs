@@ -225,6 +225,6 @@ module ConnegIntegration =
                 match bestOf ctx with
                 | Some mediaType -> 
                     let writer = writers |> findWriterFor mediaType
-                    (action ctx |> writer) >>. vary "Accept"
+                    action >>= writer >>. vary "Accept"
                 | _ -> Result.notAcceptable
             a ctx
