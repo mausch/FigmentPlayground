@@ -228,3 +228,32 @@ module ConnegIntegration =
                     action >>= writer >>. vary "Accept"
                 | _ -> Result.notAcceptable
             a ctx
+
+[<AutoOpen>]
+module WingBeatsExtensions =
+    let internal isSrc = fst >> (fun n -> n.Name = "src")
+    let internal tryGetSrc attr = attr |> List.tryFind isSrc |> Option.map snd
+
+    let rec deduplicateScripts state =
+        function
+        | TagPairNode(name, attr, children) ->
+            let state, children = deduplicateScriptsForest state children
+            let node = TagPairNode(name, attr, children)
+            if name.Name <> "script"
+                then state, node
+                else 
+                    match tryGetSrc attr with
+                    | Some src -> 
+                        if Set.contains src state
+                            then state, NoNode
+                            else 
+                                let state = Set.add src state
+                                state, node
+                    | _ -> state, node
+        | x -> state,x
+    and deduplicateScriptsForest state nodes =
+        let folder (state,nodes) n =
+            let state, node = deduplicateScripts state n
+            state, node::nodes
+        let state, nodes = Seq.fold folder (state,[]) nodes
+        state, List.rev nodes
