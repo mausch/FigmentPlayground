@@ -62,10 +62,10 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="WingBeats">
-      <HintPath>..\Figment\lib\WingBeats.dll</HintPath>
+      <HintPath>..\FsFormlets\lib\WingBeats.dll</HintPath>
     </Reference>
     <Reference Include="WingBeats.Xhtml">
-      <HintPath>..\Figment\lib\WingBeats.Xhtml.dll</HintPath>
+      <HintPath>..\FsFormlets\lib\WingBeats.Xhtml.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
