@@ -6,7 +6,7 @@
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{fc04c52a-8081-46e9-b496-d6323becce87}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <RootNamespace>Sample</RootNamespace>
     <AssemblyName>Sample</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
@@ -22,12 +22,13 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Sample.XML</DocumentationFile>
-    <StartAction>Program</StartAction>
+    <StartAction>Project</StartAction>
     <StartProgram>c:\prg\FigmentPlaygound\Sample\WebStarter.exe</StartProgram>
     <StartWorkingDirectory>
     </StartWorkingDirectory>
     <StartArguments>
     </StartArguments>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -47,6 +48,7 @@
     <Compile Include="PreApp.fs" />
     <Content Include="Global.asax" />
     <Compile Include="Global.asax.fs" />
+    <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
