@@ -214,7 +214,7 @@ let webActions () =
             //jsValidation
         ]
 
-    get "thankyou" (fun ctx -> contentf "Thank you for registering, %s" ctx.QueryString.["n"] ctx)
+    get "thankyou" (contentf "Thank you for registering, %s" =<< getQueryStringOrFail "n")
             
     formAction "register" {
         Formlet = fun ctx -> registrationFormlet ctx.IP
