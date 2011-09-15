@@ -178,6 +178,7 @@ module ConnegIntegration =
     open Figment.Extensions
     open Figment.RoutingConstraints
     open Figment.Result
+    open FSharpx.Reader
 
     let internal haccept = "Accept"
 

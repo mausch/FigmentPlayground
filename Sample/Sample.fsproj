@@ -51,6 +51,9 @@
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="FSharpx">
+      <HintPath>..\Figment\lib\FSharpx.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core" />
     <Reference Include="System" />

@@ -19,6 +19,8 @@ open WingBeats
 open WingBeats.Xhtml
 open System.Diagnostics
 open System.Net
+open FSharpx
+open FSharpx.Reader
 open global.Formlets
 open WingBeats.Formlets
 open System.Globalization
@@ -145,7 +147,7 @@ let webActions () =
 
         let dateFormlet : DateTime Formlet =
             let baseFormlet = 
-                yields t3
+                yields tuple3
                 <*> (f.Text(maxlength = 2, attributes = ["type","number"; "min","1"; "max","12"; "required","required"; "size","3"]) |> f.WithLabel "Month: ")
                 <*> (f.Text(maxlength = 2, attributes = ["type","number"; "min","1"; "max","31"; "required","required"; "size","3"]) |> f.WithLabel "Day: ")
                 <*> (f.Text(maxlength = 4, attributes = ["type","number"; "min","1900"; "required","required"; "size","5"]) |> f.WithLabel "Year: ")
@@ -169,7 +171,7 @@ let webActions () =
                 buffer.Length
             let isStrong s = compressedLength s >= 106L
             let f =
-                yields t2
+                yields tuple2
                 <*> (f.Password(required = true) |> f.WithLabel "Password: ")
                 <+ e.Br()
                 <*> (f.Password(required = true) |> f.WithLabel "Repeat password: ")
