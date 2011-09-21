@@ -36,8 +36,8 @@ let webActions () =
     get "" (redirect "hi")
 
     // applying cache as a filter, showing a regular ASP.NET MVC view
-    let cache300 = Filters.cache (OutputCacheParameters(Duration = 300, Location = OutputCacheLocation.Any))
-    get "showform" (cache300 <| view "sampleform" { FirstName = "Cacho"; LastName = "Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime(1942,6,11) })
+    let cache300 = setCache (OutputCacheParameters(Duration = 300, Location = OutputCacheLocation.Any))
+    get "showform" (cache300 >>. view "sampleform" { FirstName = "Cacho"; LastName = "Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime(1942,6,11) })
    
     // handle post to "/showdata"
     // first, a regular function
@@ -154,8 +154,8 @@ let webActions () =
             let isDate (month,day,year) = 
                 let pad n (v: string) = v.PadLeft(n,'0')
                 let ymd = sprintf "%s%s%s" (pad 4 year) (pad 2 month) (pad 2 day)
-                DateTime.TryParseExact(ymd, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None) |> fst
-            let dateValidator = err isDate (fun _ -> "Invalid date")
+                ymd |> DateTime.parseExact [|"yyyyMMdd"|] |> Option.isSome
+            let dateValidator = err isDate (konst "Invalid date")
             baseFormlet 
             |> satisfies dateValidator
             |> map (fun (month,day,year) -> DateTime(int year,int month,int day))
@@ -177,9 +177,9 @@ let webActions () =
                 <*> (f.Password(required = true) |> f.WithLabel "Repeat password: ")
             let areEqual (a,b) = a = b
             f
-            |> satisfies (err areEqual (fun _ -> "Passwords don't match"))
+            |> satisfies (err areEqual (konst "Passwords don't match"))
             |> map fst
-            |> satisfies (err isStrong (fun _ -> "Password too weak"))
+            |> satisfies (err isStrong (konst "Password too weak"))
 
         fun ip ->
             yields (fun n e p d -> 
@@ -194,7 +194,7 @@ let webActions () =
             <+ e.Br()
             <+ &"Please read very carefully these terms and conditions before registering for this online program, blah blah blah"
             <+ e.Br()
-            <* (f.Checkbox(false) |> satisfies (err id (fun _ -> "Please accept the terms and conditions")) |> f.WithLabel "I agree to the terms and conditions above")
+            <* (f.Checkbox(false) |> satisfies (err id (konst "Please accept the terms and conditions")) |> f.WithLabel "I agree to the terms and conditions above")
             <* reCaptcha ip
 
     let jsValidation = 
