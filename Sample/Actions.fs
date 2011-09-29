@@ -30,14 +30,14 @@ open System.IO.Compression
 let webActions () =
 
     // hello world
-    get "hi" (content "<h1>Hello World!</h1>")
+    get "/hi" (content "<h1>Hello World!</h1>")
 
     // redirect root to "/hi"
-    get "" (redirect "hi")
+    get "/" (redirect "/hi")
 
     // applying cache as a filter, showing a regular ASP.NET MVC view
     let cache300 = setCache (OutputCacheParameters(Duration = 300, Location = OutputCacheLocation.Any))
-    get "showform" (cache300 >>. view "sampleform" { FirstName = "Cacho"; LastName = "Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime(1942,6,11) })
+    get "/showform" (cache300 >>. view "sampleform" { FirstName = "Cacho"; LastName = "Castaña"; Email = ""; Password = ""; DateOfBirth = DateTime(1942,6,11) })
    
     // handle post to "/showdata"
     // first, a regular function
@@ -45,8 +45,8 @@ let webActions () =
     // binding to request
     let greet' (ctx: ControllerContext) = 
         let boundGreet = greet >> contentf "<h1>%s</h1>"
-        boundGreet ctx.["somefield"] ctx
-    post "showdata" greet'
+        boundGreet ctx.Request.["somefield"] ctx
+    post "/showdata" greet'
 
     // handle get to "/showdata"
     // first, a regular function
@@ -54,9 +54,9 @@ let webActions () =
         sprintf "Hello %s %s, you're %d years old" firstName lastName age
     // binding to request
     let greet' (ctx: ControllerContext) =
-        greet ctx.["firstname"] ctx.["lastname"] (int ctx.["age"])
+        greet ctx.Request.["firstname"] ctx.Request.["lastname"] (int ctx.Request.["age"])
         |> sprintf "<p>%s</p>" |> content <| ctx
-    get "showdata" greet'
+    get "/showdata" greet'
 
     let greet' (p: NameValueCollection) = 
         greet p.["firstname"] p.["lastname"] (int p.["age"])
@@ -64,15 +64,15 @@ let webActions () =
         let! msg = bindQuerystring greet'
         do! view "someview" msg
     })*)
-    get "greetme2" (Binding.bindQuerystring greet' >>= view "someview")
+    get "/greetme2" (Binding.bindQuerystring greet' >>= view "someview")
 
     // strongly-typed route+binding
     let nameAndAge firstname lastname age = 
         contentf "Hello %s %s, %d years old" firstname lastname age
-    getf "route/{firstname:%s}/{lastname:%s}/{age:%d}" nameAndAge
+    getf "/route/{firstname:%s}/{lastname:%s}/{age:%d}" nameAndAge
 
     // strongly-typed route+binding with access to HttpContext
-    getf "route/{name:%s}"
+    getf "/route/{name:%s}"
         (fun name ->
             result {
                 do! writefn "Hello %s" name
@@ -95,7 +95,7 @@ let webActions () =
             ]
         ]]
     let wbpageview = wbpage >> wbview
-    get "wingbeats" (wbpageview "Hello World from Wing Beats")
+    get "/wingbeats" (wbpageview "Hello World from Wing Beats")
 
     // routing dsl
     let ifGetDsl = ifUrlMatches "^/dsl" &&. ifMethodIsGet
@@ -216,17 +216,17 @@ let webActions () =
             //jsValidation
         ]
 
-    get "thankyou" (contentf "Thank you for registering, %s" =<< getQueryStringOrFail "n")
+    get "/thankyou" (contentf "Thank you for registering, %s" =<< getQueryStringOrFail "n")
             
-    formAction "register" {
+    formAction "/register" {
         Formlet = fun ctx -> registrationFormlet ctx.IP
         Page = fun _ -> registrationPage
-        Success = fun _ v -> redirectf "thankyou?n=%s" v.FirstName
+        Success = fun _ v -> redirectf "/thankyou?n=%s" v.FirstName
     }
 
     // http://www.paulgraham.com/arcchallenge.html
     let arcChallenge() =            
-        let k,url,url2 = "s","said","showsaid"
+        let k,url,url2 = "s","/said","/showsaid"
         get url (wbview [s.FormPost url [e.Input ["name",k]; s.Submit "Send"]])
         post url (fun ctx -> (k, ctx.Form.[k]) ||> ctx.Session.Set; wbview [s.Link url2 "click here"] ctx)
         get url2 (fun ctx -> wbview [&ctx.Session.Get(k)] ctx)
@@ -241,8 +241,8 @@ let webActions () =
                 Page = page
                 Success = action
             }
-        let k,url = "s","showsaid"
-        getpost "said" (f.Text()) (fun ctx v -> ctx.Session.Set k v; wbview [s.Link url "click here"])
+        let k,url = "s","/showsaid"
+        getpost "/said" (f.Text()) (fun ctx v -> ctx.Session.Set k v; wbview [s.Link url "click here"])
         get url (fun ctx -> wbview [&ctx.Session.Get(k)] ctx)
     //arcChallenge2()
 
@@ -273,7 +273,7 @@ let webActions () =
                 let show = textf "Hello %s %s" firstname lastname
                 return! web.ShowFormlet show
             }
-        action (ifPathIs "name") (web.ToAction cc)
+        action (ifPathIs "/name") (web.ToAction cc)
         ()
 
     formletBind()
@@ -291,7 +291,7 @@ let webActions () =
                       ]
 
         // finally we register the action with negotiation
-        get "conneg1" (negotiateActionMediaType writers connegAction)
+        get "/conneg1" (negotiateActionMediaType writers connegAction)
 
         // another example including a text/html media type:
         // a Wing Beats (html) ActionResult generator
@@ -299,11 +299,11 @@ let webActions () =
         // we add html to the list of available media types
         let conneg2writers = (["text/html"], html)::writers
         // finally we register the action with negotiation
-        get "conneg2" (negotiateActionMediaType conneg2writers connegAction)
+        get "/conneg2" (negotiateActionMediaType conneg2writers connegAction)
 
         // Another example with no true negotiation, client's preferences are ignored
         // partial routing functions
-        let ifConneg3Get = ifMethodIsGet &&. ifPathIs "conneg3"
+        let ifConneg3Get = ifMethodIsGet &&. ifPathIs "/conneg3"
         // if client accepts xml, respond with xml
         action (ifConneg3Get &&. ifAcceptsAny ["application/xml"; "text/xml"]) (connegAction >>= Result.xml)
         // if client accepts json, respond with json
@@ -325,11 +325,11 @@ let webActions () =
                             "html", html
                          ]
         for ext,writer in extensions do
-            let ifConneg4 = ifPathIsf "conneg4.%s" ext
+            let ifConneg4 = ifPathIsf "/conneg4.%s" ext
             action (ifMethodIsGet &&. ifConneg4) (connegAction >>= writer)
 
         // extension-driven + negotiated media-type
-        let basePath = "conneg5"
+        let basePath = "/conneg5"
         let writers = [
                         "xml", ["application/xml"; "text/xml"], Result.xml
                         "json", ["application/json"], json

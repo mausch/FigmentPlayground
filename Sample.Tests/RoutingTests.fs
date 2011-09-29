@@ -21,7 +21,7 @@ let ``get / redirects to /hi`` () =
                     override y.Redirect(url, e) = 
                         redirectUrl := url }
     controller.Execute ctx
-    Assert.Equal("hi", !redirectUrl)
+    Assert.Equal("/hi", !redirectUrl)
 
 [<Fact>]
 let ``get /hi shows hello world`` () =
