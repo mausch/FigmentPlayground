@@ -20,9 +20,7 @@ let ``get / redirects to /hi`` () =
                 { new HttpResponseBase() with
                     override y.Redirect(url, e) = 
                         redirectUrl := url }
-    let ctx = ctx |> stubSession |> buildCtx
-    ctx.RouteData <- route
-    ctx.RequestContext.RouteData <- route
+    let ctx = ctx |> stubSession |> buildCtx |> withRoute route
     controller.Execute ctx.RequestContext
     Assert.Equal("/hi", !redirectUrl)
 
@@ -36,9 +34,7 @@ let ``get /hi shows hello world`` () =
                 { new HttpResponseBase() with
                     override y.Write(s: string) = 
                         sb.Append s |> ignore }
-    let ctx = ctx |> stubSession |> buildCtx
-    ctx.RouteData <- route
-    ctx.RequestContext.RouteData <- route
+    let ctx = ctx |> stubSession |> buildCtx |> withRoute route
     controller.Execute ctx.RequestContext
     Assert.Contains("Hello World", sb.ToString())
 
@@ -60,8 +56,7 @@ let ``put /hi returns method not allowed``() =
               |> withRequest ((buildRequest "PUT" "hi").Request)
               |> stubSession
               |> buildCtx
-    ctx.RouteData <- route
-    ctx.RequestContext.RouteData <- route
+              |> withRoute route
     controller.Execute ctx.RequestContext
     Assert.Equal(405, !statusCode)
     Assert.Equal("GET, HEAD", nv.["Allow"])
