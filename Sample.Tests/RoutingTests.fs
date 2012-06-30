@@ -22,7 +22,7 @@ let ``get / redirects to /hi`` () =
                         redirectUrl := url }
     let ctx = ctx |> stubSession |> buildCtx |> withRoute route
     controller.Execute ctx.RequestContext
-    Assert.Equal("/hi", !redirectUrl)
+    Assert.Equal<string>("/hi", !redirectUrl)
 
 [<Fact>]
 let ``get /hi shows hello world`` () =
@@ -59,6 +59,6 @@ let ``put /hi returns method not allowed``() =
               |> withRoute route
     controller.Execute ctx.RequestContext
     Assert.Equal(405, !statusCode)
-    Assert.Equal("GET, HEAD", nv.["Allow"])
+    Assert.Equal<string>("GET, HEAD", nv.["Allow"])
     
 
